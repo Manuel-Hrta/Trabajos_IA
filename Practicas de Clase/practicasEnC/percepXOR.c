@@ -2,98 +2,90 @@
 #include <stdlib.h>
 #include <math.h>
 
-#define EPOCHS 3000
-#define LEARNING_RATE 0.1f
+#define epoca 300000
+#define K 0.03f
 
-float sigmoid(float x) {
-    return 1 / (1 + exp(-x));
+//0.00000
+//Funcion de Entrenamiento Perceptron
+float EntNt(float, float, float  );
+//Sigmoide
+float sigmoide(float);
+//pesos aleatorios
+void pesos_initNt();
+
+float Pesos[2];	
+float bias=0.5f;
+float Error;
+
+float EntNt( float x0, float x1, float target )
+{
+  
+  
+  float net = 0;
+  float out = 0;
+  float delta[2];  
+   
+  net = Pesos[0]*x0 + Pesos[1]*x1 - bias;
+  net = sigmoide( net );
+   
+  Error = target - net; 
+  bias -= K*Error;  
+   
+  delta[0] = K*Error * x0;  //la variacion de los pesos sinapticos corresponde 
+  delta[1] = K*Error * x1;  //al error cometido, por la entrada correspondiente
+    
+   
+  Pesos[0] += delta[0];  //Se ajustan los nuevos valores
+  Pesos[1] += delta[1];  //de los pesos sinapticos
+
+   
+  out=net;
+  return out;
+}
+ 
+ 
+ 
+void pesos_initNt(void)
+{
+int i;
+  for(  i = 0; i < 2; i++ )
+  {
+    Pesos[i] = (float)rand()/RAND_MAX;
+  }
+}
+ 
+float sigmoide( float s ){
+  return (1/(1+ (-1*s)));
 }
 
-float sigmoid_derivative(float x) {
-    return x * (1 - x);
+int main(){
+  int i=0;
+  float apr;
+  pesos_initNt();
+  
+ while(i<epoca){
+    
+    printf("------------------------\n");
+    printf("Salida Entrenamiento Epoco %d \n", i);
+    apr=EntNt(1,1,0);
+    printf("1,1=%f\n",apr);
+    apr=EntNt(0,1,1);
+    printf("0,1=%f\n",apr);
+    apr=EntNt(0,1,1);
+    printf("0,1=%f\n",apr);
+    apr=EntNt(0,0,0);
+    printf("0,0=%f\n",apr);
+    printf("\n"); 
+    printf("Pesos de cada epoca\n");
+    printf("Peso 0 = %f\n", Pesos[0]);
+    printf("Peso 1 = %f\n", Pesos[1]);
+  
+    printf("Bias = %f \n",bias);
+	printf("Error %f\n ",Error  );
+	printf("------------------------\n"); 
+	i++;   
+
 }
 
-// Definición de la estructura de una neurona
-typedef struct {
-    float weights[2];
-    float bias;
-} Neuron;
-
-// Inicialización de pesos y bias aleatorios para una neurona
-void initialize_neuron(Neuron *neuron) {
-    neuron->weights[0] = (float)rand() / RAND_MAX;
-    neuron->weights[1] = (float)rand() / RAND_MAX;
-    neuron->bias = (float)rand() / RAND_MAX;
-}
-
-// Calcular la salida de una neurona
-float neuron_output(Neuron *neuron, float x0, float x1) {
-    float net_input = neuron->weights[0] * x0 + neuron->weights[1] * x1 + neuron->bias;
-    return sigmoid(net_input);
-}
-
-// Ajustar los pesos y el bias de la neurona
-void train_neuron(Neuron *neuron, float x0, float x1, float error, float learning_rate) {
-    neuron->weights[0] += learning_rate * error * x0;
-    neuron->weights[1] += learning_rate * error * x1;
-    neuron->bias += learning_rate * error;
-}
-
-int main() {
-    // Inicializar neuronas de la capa oculta y la capa de salida
-    Neuron hidden_layer[2];
-    Neuron output_neuron;
-    initialize_neuron(&hidden_layer[0]);
-    initialize_neuron(&hidden_layer[1]);
-    initialize_neuron(&output_neuron);
-
-    // Datos de entrenamiento para la función XOR
-    float inputs[4][2] = {{1, 1}, {1, 0}, {0, 1}, {0, 0}};
-    float targets[4] = {0, 1, 1, 0};
-
-    for (int epoch = 0; epoch < EPOCHS; epoch++) {
-        float total_error = 0;
-
-        for (int i = 0; i < 4; i++) {
-            // Paso de forward
-            float h1_output = neuron_output(&hidden_layer[0], inputs[i][0], inputs[i][1]);
-            float h2_output = neuron_output(&hidden_layer[1], inputs[i][0], inputs[i][1]);
-            float output = neuron_output(&output_neuron, h1_output, h2_output);
-
-            // Calcular el error de la salida
-            float output_error = targets[i] - output;
-            total_error += output_error * output_error;
-
-            // Paso de backward - retropropagación
-            float output_delta = output_error * sigmoid_derivative(output);
-
-            float h1_error = output_delta * output_neuron.weights[0];
-            float h2_error = output_delta * output_neuron.weights[1];
-
-            float h1_delta = h1_error * sigmoid_derivative(h1_output);
-            float h2_delta = h2_error * sigmoid_derivative(h2_output);
-
-            // Actualizar pesos de la capa de salida
-            train_neuron(&output_neuron, h1_output, h2_output, output_delta, LEARNING_RATE);
-
-            // Actualizar pesos de la capa oculta
-            train_neuron(&hidden_layer[0], inputs[i][0], inputs[i][1], h1_delta, LEARNING_RATE);
-            train_neuron(&hidden_layer[1], inputs[i][0], inputs[i][1], h2_delta, LEARNING_RATE);
-        }
-
-        if (epoch % 10000 == 0) {
-            printf("Epoca %d, Error Total: %f\n", epoch, total_error);
-        }
-    }
-
-    // Pruebas de la red neuronal entrenada
-    printf("Resultados despues del entrenamiento:\n");
-    for (int i = 0; i < 4; i++) {
-        float h1_output = neuron_output(&hidden_layer[0], inputs[i][0], inputs[i][1]);
-        float h2_output = neuron_output(&hidden_layer[1], inputs[i][0], inputs[i][1]);
-        float output = neuron_output(&output_neuron, h1_output, h2_output);
-        printf("Input: (%.0f, %.0f) -> Prediccion: %f (Esperado: %.0f)\n", inputs[i][0], inputs[i][1], output, targets[i]);
-    }
-
-    return 0;
+  return 0;
 }
