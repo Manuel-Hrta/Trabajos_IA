@@ -17,8 +17,6 @@ import joblib
 pygame.init()
 
 
-modelo_arbol = None  # Modelo del árbol de decisión
-
 # Dimensiones de la pantalla
 w, h = 800, 400
 pantalla = pygame.display.set_mode((w, h))
@@ -85,23 +83,7 @@ bala_disparada = False
 fondo_x1 = 0
 fondo_x2 = w
 
-#cargar modelo arbol
-def cargar_arbol():
-    global modelo_arbol
-    try:
-        modelo_arbol = joblib.load("modelo_arbol.pkl")
-        print("Modelo de árbol cargado desde 'modelo_arbol.pkl'.")
-    except FileNotFoundError:
-        print("El archivo 'modelo_arbol.pkl' no existe. Entrena el modelo primero.")
 
-# Función para cargar el modelo de red neuronal
-def cargar_modelo():
-    global modelo_salto
-    try:
-        modelo_salto = load_model('modelo_salto.h5')
-        print("Modelo cargado correctamente.")
-    except FileNotFoundError:
-        print("El modelo 'modelo_salto.h5' no existe. Entrena el modelo primero.")
 
 # Inicializar el archivo CSV
 def inicializar_csv():
@@ -116,7 +98,7 @@ def inicializar_csv():
 def disparar_bala():
     global bala_disparada, velocidad_bala
     if not bala_disparada:
-        velocidad_bala = random.randint(-8, -5)
+        velocidad_bala = random.randint(-8, -8)
         bala_disparada = True
 
 # Función para reiniciar la posición de la bala
@@ -182,6 +164,23 @@ def guardar_datos():
     except Exception as e:
         print(f"Error al guardar datos en CSV: {e}")
 
+#cargar modelo arbol
+def cargar_arbol():
+    global modelo_arbol
+    try:
+        modelo_arbol = joblib.load("modelo_arbol.pkl")
+        print("Modelo de árbol cargado desde 'modelo_arbol.pkl'.")
+    except FileNotFoundError:
+        print("El archivo 'modelo_arbol.pkl' no existe. Entrena el modelo primero.")
+
+# Función para cargar el modelo de red neuronal
+def cargar_modelo():
+    global modelo_salto
+    try:
+        modelo_salto = load_model('modelo_salto.h5')
+        print("Modelo cargado correctamente.")
+    except FileNotFoundError:
+        print("El modelo 'modelo_salto.h5' no existe. Entrena el modelo primero.")
 
 # Función para reiniciar el juego
 def reiniciar_juego():
@@ -213,123 +212,6 @@ def decision_automatica():
     # # # Decidir si saltar (umbral 0.5)
     return prediccion > 0.5
 
-# Función para mostrar el menú
-def mostrar_menu():
-    global menu_activo, modo_auto, modo_auto_arbol
-    pantalla.fill(NEGRO)
-
-    # Títulos
-    titulo = fuente.render("MENÚ PRINCIPAL", True, BLANCO)
-    subtitulo = fuente.render("================", True, BLANCO)
-
-    # Opciones
-    opcion1 = fuente.render("[A] Modo Automático", True, BLANCO)
-    opcion2 = fuente.render("[M] Modo Manual", True, BLANCO)
-    opcion3 = fuente.render("[G] Mostrar Gráfica", True, BLANCO)
-    opcion4 = fuente.render("[T] Mostrar Árbol", True, BLANCO)
-    opcion5 = fuente.render("[R] Entrenar Modelo", True, BLANCO)  # Nueva opción
-    opcion6 = fuente.render("[P] Modo Automático (Árbol)", True, BLANCO)  # Nueva opción
-    opcion7 = fuente.render("[Q] Salir del Programa", True, BLANCO)
-
-    # Definir las posiciones iniciales para las opciones
-    espacio_entre_opciones = 40
-    y_inicio = 50  # Lugar donde inicia el menú, más cerca del top
-
-    # Renderizar en pantalla
-    pantalla.blit(titulo, (w // 8, y_inicio))  # Título en la parte superior
-    pantalla.blit(subtitulo, (w // 8, y_inicio + 40))  # Subtítulo debajo del título
-    pantalla.blit(opcion1, (w // 8, y_inicio + 80))
-    pantalla.blit(opcion2, (w // 8, y_inicio + 120))
-    pantalla.blit(opcion3, (w // 8, y_inicio + 160))
-    pantalla.blit(opcion4, (w // 8, y_inicio + 200))
-    pantalla.blit(opcion5, (w // 8, y_inicio + 240))  # Nueva opción en el menú
-    pantalla.blit(opcion6, (w // 8, y_inicio + 280))
-    pantalla.blit(opcion7, (w // 8, y_inicio + 320))
-
-    pygame.display.flip()
-
-    while menu_activo:
-        for evento in pygame.event.get():
-            if evento.type == pygame.QUIT:
-                pygame.quit()
-                exit()
-            if evento.type == pygame.KEYDOWN:
-                if evento.key == pygame.K_a:
-                    modo_auto = True
-                    menu_activo = False
-                    modo_auto_arbol = False  # Activar el modo automático con el árbol
-                    print(modo_auto_arbol)
-                elif evento.key == pygame.K_m:
-                    modo_auto = False
-                    menu_activo = False
-                elif evento.key == pygame.K_g:
-                    mostrar_grafica()
-                elif evento.key == pygame.K_t:
-                    generar_arbol()
-                elif evento.key == pygame.K_r:  # Nueva tecla para entrenar el modelo
-                    entrenar_modelo()
-                elif evento.key == pygame.K_p:  # Modo Automático (Árbol)
-                    cargar_arbol()  # Intentar cargar el modelo de árbol
-                    if modelo_arbol is None:  # Validar si se cargó correctamente
-                        print("El modelo de árbol no está disponible. Genera el modelo primero.")
-                        pausa = True  # Pausar el juego
-                    else:
-                        modo_auto = True
-                        modo_auto_arbol = True  # Activar el modo automático con el árbol
-                        menu_activo = False
-                elif evento.key == pygame.K_q:
-                    pygame.quit()
-                    exit()
-
-# Función para mostrar la gráfica
-def mostrar_grafica():
-    if not datos_modelo:
-        print("No hay datos para mostrar.")
-        return
-    velocidades, distancias, saltos = zip(*datos_modelo)
-    plt.figure(figsize=(10, 6))
-    plt.subplot(3, 1, 1)
-    plt.plot(velocidades, label="Velocidad de la Bala")
-    plt.legend()
-    plt.subplot(3, 1, 2)
-    plt.plot(distancias, label="Distancia", color="orange")
-    plt.legend()
-    plt.subplot(3, 1, 3)
-    plt.plot(saltos, label="Saltos (1=Sí, 0=No)", color="green")
-    plt.legend()
-    plt.show()
-
-# Función para generar el árbol de decisión
-def generar_arbol():
-    global modelo_arbol
-    try:
-        if len(datos_modelo) < 5:
-            print("No hay suficientes datos para generar el árbol.")
-            return
-        dataset = pd.DataFrame(datos_modelo, columns=["Velocidad", "Distancia", "Salto"])
-        X = dataset[["Velocidad", "Distancia"]]
-        y = dataset["Salto"]
-
-        # Entrenar el modelo de árbol
-        modelo_arbol = DecisionTreeClassifier()
-        modelo_arbol.fit(X, y)
-
-        # Guardar el modelo en un archivo .pkl
-        joblib.dump(modelo_arbol, "modelo_arbol.pkl")
-        print("Modelo de árbol guardado como 'modelo_arbol.pkl'.")
-
-        # Generar la visualización del árbol
-        dot_data = export_graphviz(modelo_arbol, out_file=None,
-                                   feature_names=["Velocidad", "Distancia"],
-                                   class_names=["No Salto", "Salto"],
-                                   filled=True, rounded=True,
-                                   special_characters=True)
-        graph = graphviz.Source(dot_data)
-        graph.view()
-    except Exception as e:
-        print("Error al generar el árbol: ", e)
-
-
 def decision_automatica_arbol():
     global modelo_arbol, jugador, bala
     if modelo_arbol is None:
@@ -345,6 +227,41 @@ def decision_automatica_arbol():
     prediccion = modelo_arbol.predict(entrada)[0]  # Obtener la predicción (0 o 1)
     print(f"Decisión del árbol: {'Salto' if prediccion == 1 else 'No salto'}")
     return prediccion == 1  # True si debe saltar, False si no
+
+
+# Función para generar el árbol de decisión
+def entrenar_arbol():
+    global modelo_arbol
+    print("Entrenando el árbol de decisión...")
+    try:
+        # Cargar los datos del archivo CSV
+        datos = pd.read_csv(archivo_datos)
+        if datos.empty:
+            print("El archivo CSV está vacío. No se puede entrenar el árbol.")
+            return
+
+        # Separar las características (X) y la etiqueta (y)
+        X = datos[["Velocidad", "Distancia"]]
+        y = datos["Salto"]
+
+        # Verificar si hay suficientes datos para entrenar
+        if len(datos) < 5:
+            print("No hay suficientes datos para entrenar el árbol de decisión.")
+            return
+
+        # Entrenar el modelo de árbol de decisión
+        modelo_arbol = DecisionTreeClassifier()
+        modelo_arbol.fit(X, y)
+
+        # Guardar el modelo entrenado en un archivo .pkl
+        joblib.dump(modelo_arbol, "modelo_arbol.pkl")
+        print("Modelo de árbol entrenado y guardado como 'modelo_arbol.pkl'.")
+
+    except FileNotFoundError:
+        print(f"El archivo '{archivo_datos}' no existe. Asegúrate de guardar datos antes de entrenar.")
+    except Exception as e:
+        print(f"Error al entrenar el árbol de decisión: {e}")
+
 
 
 #entrenar modelo con boton 
@@ -377,7 +294,7 @@ def entrenar_modelo():
         modelo.compile(optimizer="adam", loss="binary_crossentropy", metrics=["accuracy"])
 
         # Entrenar el modelo
-        modelo.fit(X_train, y_train, epochs=50, batch_size=10, validation_data=(X_test, y_test))
+        modelo.fit(X_train, y_train, epochs=20, batch_size=10, validation_data=(X_test, y_test))
 
         # Evaluar el modelo en el conjunto de prueba
         loss, accuracy = modelo.evaluate(X_test, y_test, verbose=0)
@@ -394,13 +311,73 @@ def entrenar_modelo():
         print(f"Error al entrenar el modelo: {e}")
 
 
+# Función para mostrar el menú
+def mostrar_menu():
+    global menu_activo, modo_auto, modo_auto_arbol
+    pantalla.fill(NEGRO)
+
+    # Títulos
+    titulo = fuente.render("MENÚ PRINCIPAL", True, BLANCO)
+    subtitulo = fuente.render("================", True, BLANCO)
+
+    # Opciones
+    opcion1 = fuente.render("[M] Modo Manual", True, BLANCO)
+    opcion2 = fuente.render("[A] Modo Automático", True, BLANCO)
+    opcion3 = fuente.render("[P] Modo Automático (Árbol)", True, BLANCO)  # Nueva opción
+    opcion7 = fuente.render("[Q] Salir del Programa", True, BLANCO)
+
+    # Definir las posiciones iniciales para las opciones
+    espacio_entre_opciones = 40
+    y_inicio = 50  # Lugar donde inicia el menú, más cerca del top
+
+    # Renderizar en pantalla
+    pantalla.blit(titulo, (w // 8, y_inicio))  # Título en la parte superior
+    pantalla.blit(subtitulo, (w // 8, y_inicio + 40))  # Subtítulo debajo del título
+    pantalla.blit(opcion1, (w // 8, y_inicio + 80))
+    pantalla.blit(opcion2, (w // 8, y_inicio + 120))
+    pantalla.blit(opcion3, (w // 8, y_inicio + 160))
+    pantalla.blit(opcion7, (w // 8, y_inicio + 200))
+
+    pygame.display.flip()
+
+    while menu_activo:
+        for evento in pygame.event.get():
+            if evento.type == pygame.QUIT:
+                pygame.quit()
+                exit()
+            if evento.type == pygame.KEYDOWN:
+                if evento.key == pygame.K_a:
+                    entrenar_modelo()
+                    modo_auto = True
+                    menu_activo = False
+                    modo_auto_arbol = False  # Activar el modo automático con el árbol
+                    print(modo_auto_arbol)
+                elif evento.key == pygame.K_m:
+                    inicializar_csv()
+                    modo_auto = False
+                    menu_activo = False
+                elif evento.key == pygame.K_p:  # Modo Automático (Árbol)
+                    entrenar_arbol()
+                    cargar_arbol()
+                    if modelo_arbol is None:  # Validar si se cargó correctamente
+                        print("El modelo de árbol no está disponible. Genera el modelo primero.")
+                        pausa = True  # Pausar el juego
+                    else:
+                        modo_auto = True
+                        modo_auto_arbol = True  # Activar el modo automático con el árbol
+                        menu_activo = False
+                elif evento.key == pygame.K_q:
+                    pygame.quit()
+                    exit()
+
+
 # Función principal
+# Modificar la función principal para reiniciar con la tecla ESC
 def main():
     global pausa  # Asegurarse de que pausa sea global
     cargar_modelo()
+    cargar_arbol()
     global salto, en_suelo, bala_disparada, modo_auto
-
-    inicializar_csv()
     reloj = pygame.time.Clock()
     mostrar_menu()
     correr = True
@@ -413,8 +390,11 @@ def main():
                 if evento.key == pygame.K_SPACE and en_suelo and not pausa:
                     salto = True
                     en_suelo = False
+                if evento.key == pygame.K_ESCAPE:  # Detectar la tecla ESC
+                    print("Tecla ESC presionada. Reiniciando juego.")
+                    reiniciar_juego()  # Llamar a la función de reinicio del juego
 
-        if not pausa:  # Validación de pausa ahora no dará error
+        if not pausa:  # Validación de pausa
             if not bala_disparada:
                 disparar_bala()
 
@@ -423,19 +403,18 @@ def main():
 
             if not modo_auto:
                 guardar_datos()
-
             elif modo_auto:
                 if modo_auto_arbol:  # Usar el árbol de decisión
                     if decision_automatica_arbol():  # Basado en el árbol
                         salto = True
                         en_suelo = False
-                else:  # Usar la red neuronal
+                elif not modo_auto_arbol:  # Usar la red neuronal
                     if decision_automatica():  # Basado en la red neuronal
                         salto = True
                         en_suelo = False
 
-
             update()
+
         pygame.display.flip()
         reloj.tick(30)
 
